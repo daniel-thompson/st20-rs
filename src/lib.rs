@@ -157,4 +157,19 @@ mod tests {
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xaef01234, 0xb789abcd, 0xc0123456);
     }
+
+    #[test]
+    fn test_not() {
+        let mut code = assembleST20C1!(
+            ldc     #0
+            not
+            ldc16   #0xffff
+            not
+            ldc32   #0x55aa33cc
+            not
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xaa55cc33, 0xffff0000, 0xffffffff);
+    }
 }

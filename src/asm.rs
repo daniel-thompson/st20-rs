@@ -233,6 +233,7 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xB0, 0x00 ],
             [ $($lbl => $lblval),* ], [ $($reloc,)* { $label as PCREL @ [$($mcode,)* 0xB0] } ], $($rest)*)
     };
+
     // BREAKPOINT
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         breakpoint
@@ -374,6 +375,13 @@ macro_rules! asm_ {
         lsr $zp:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0x46, $zp ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // NOT
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        not
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // ROL - Rotate Left
@@ -643,8 +651,9 @@ mod tests {
     fn opr_primary() {
         let mcode = assembleST20C1!(
             add
+            not
             breakpoint
         );
-        assert_eq!(mcode, [0xf4, 0xff]);
+        assert_eq!(mcode, [0xf4, 0xf8, 0xff]);
     }
 }

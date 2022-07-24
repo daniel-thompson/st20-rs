@@ -427,8 +427,9 @@ opr:
 	opr	2		// rot,
 	opr	3		// arot,
 
-add:				// ... or ...
+add:				// (opr4) or ...
 	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
 	mov	rBreg, rCreg
 	mov	rCreg, rAreg
@@ -440,7 +441,14 @@ add:				// ... or ...
 	opr	5		// sub,
 	opr	6		// mul,
 	opr	7		// wsub,
-	opr	8		// not,
+
+not:				// (opr 8) or ...
+	cbnz	rAcc, 1f
+	mvn	rAreg, rAreg
+	fetchexec
+1:
+	b	panic
+
 	opr	9		// and,
 	opr	10		// or,
 	opr	11		// shl,
@@ -448,7 +456,7 @@ add:				// ... or ...
 	opr	13		// jab,
 	opr	14		// timeslice,
 
-breakpoint:			// ... or ashr, lwinc, nop
+breakpoint:			// (opr F) or ashr, lwinc, nop
 	cbnz	rAcc, panic
 	b	st20c1_restore
 	fetchexec
