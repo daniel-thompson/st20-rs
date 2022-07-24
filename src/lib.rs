@@ -2,6 +2,9 @@
 // Copyright (C) 2022 Daniel Thompson
 
 #![allow(non_snake_case)]
+#![allow(unused_macros)] // see TODO in asm.rs
+
+pub mod asm;
 
 use std::arch::global_asm;
 use std::os::raw::{c_int, c_void};
@@ -81,13 +84,25 @@ mod tests {
 
     #[test]
     fn test_ldc4bit() {
-        let c1 = run_fragment(&mut vec![0x4c, 0x4b, 0x4a, 0xff]);
+        let mut code = assembleST20C1!(
+            ldc     0xc
+            ldc     0xb
+            ldc     0xa
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0x0a, 0x0b, 0x0c);
     }
 
     #[test]
     fn test_ldc8bit() {
-        let c1 = run_fragment(&mut vec![0x2c, 0x40, 0x2b, 0x41, 0x2a, 0x42, 0xff]);
+        let mut code = assembleST20C1!(
+            ldc8    0xc0
+            ldc8    0xb1
+            ldc8    0xa2
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xa2, 0xb1, 0xc0);
     }
 }
