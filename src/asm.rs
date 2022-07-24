@@ -299,9 +299,19 @@ macro_rules! asm_ {
 
     // LDC
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x6f), (0x40 + (0x10 - $imm)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         ldc # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x40 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc4 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x6f), (0x40 + (0x10 - $imm)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         ldc4 # $imm:tt
@@ -309,14 +319,29 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* (0x40 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc8 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x60 | (((0x100 - $imm) >> 4) & 0xf)) as u8, (0x40 | ((0x100 - $imm) & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         ldc8 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 4) & 0xf)), (0x40 | ($imm & 0xf)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc16 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x60 | (((0x10000 - $imm) >> 12) & 0xf)) as u8, (0x20 | (((0x10000 - $imm) >> 8) & 0xf)) as u8, (0x20 | (((0x10000 - $imm) >> 4) & 0xf)) as u8, (0x40 | ((0x10000 - $imm) & 0xf) as u8) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         ldc16 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 12) & 0xf)) as u8, (0x20 | (($imm >> 8) & 0xf)) as u8, (0x20 | (($imm >> 4) & 0xf)) as u8, (0x40 | ($imm & 0xf) as u8) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc32 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x68 | (((0x80000000_u32 - $imm) >> 28) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 24) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 20) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 16) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 12) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 8) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 4) & 0xf)) as u8, (0x40 | ((0x80000000_u32 - $imm) & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         ldc32 # $imm:tt
@@ -625,6 +650,7 @@ mod tests {
     #[test]
     fn ldc() {
         let mcode = assembleST20C1!(
+            ldc     #-1
             ldc     #0
             ldc4    #1
             ldc     #0xa
@@ -636,6 +662,7 @@ mod tests {
         assert_eq!(
             mcode,
             [
+                0x6f, 0x4f, // ldc -1
                 0x40, // ldc
                 0x41, // ldc4
                 0x4a, // ldc

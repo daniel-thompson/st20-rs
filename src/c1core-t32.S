@@ -49,6 +49,7 @@ st20c1_run:
 	ldr	rMemBase, [rScratch, #32]
 	add	rIptr, rIptr, rMemBase
 	adr	rDispatch, dispatch+1	/* +1 to stay in thumb mode */
+	mov	rAcc, #0
 
 .macro	fetchexec
 	ldrb	rScratch, [rIptr], #1	/* 32-bit opcode */
@@ -126,8 +127,8 @@ ldlp:
 	ldlp	15
 
 .macro	pfix operand
-	add	rAcc, rAcc, #\operand
 	lsl	rAcc, rAcc, #4
+	orr	rAcc, rAcc, #\operand << 4
 	fetchexec
 .endm
 pfix:
@@ -218,7 +219,10 @@ ldnlp:
 	ldnlp	15
 
 .macro	nfix	operand
-	b	panic
+	lsl	rAcc, rAcc, #4
+	mov	rScratch, #0xffffff00
+	eor	rAcc, rScratch
+	add	rAcc, rAcc, #\operand << 4
 	fetchexec
 .endm
 nfix:

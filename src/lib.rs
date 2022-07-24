@@ -114,12 +114,21 @@ mod tests {
     fn test_ldc4bit() {
         let mut code = assembleST20C1!(
             ldc     #0xc
-            ldc     #0xb
+            ldc4    #0xb
             ldc     #0xa
             breakpoint
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0x0a, 0x0b, 0x0c);
+
+        let mut code = assembleST20C1!(
+            ldc     #-1
+            ldc4    #-8
+            ldc     #-15
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, -15_i32 as u32, -8_i32 as u32, -1_i32 as u32);
     }
 
     #[test]
@@ -132,6 +141,15 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xa2, 0xb1, 0xc0);
+
+        let mut code = assembleST20C1!(
+            ldc8    #-1
+            ldc8    #-88
+            ldc8    #-252
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, -252_i32 as u32, -88_i32 as u32, -1_i32 as u32);
     }
 
     #[test]
@@ -144,6 +162,15 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xa678, 0xb345, 0xc012);
+
+        let mut code = assembleST20C1!(
+            ldc16   #-1
+            ldc16   #-256
+            ldc16   #-30000
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, -30000_i32 as u32, -256_i32 as u32, -1_i32 as u32);
     }
 
     #[test]
@@ -156,6 +183,22 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xaef01234, 0xb789abcd, 0xc0123456);
+
+        let mut code = assembleST20C1!(
+            ldc32   #-1
+            ldc32   #-30000
+            ldc32   #-800000000
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, -800000000_i32 as u32, -30000_i32 as u32, -1_i32 as u32);
+    }
+
+    #[test]
+    fn test_nfix() {
+        let mut code: Vec<u8> = vec![0x6f, 0x4f, 0xff];
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xffffffff);
     }
 
     #[test]
