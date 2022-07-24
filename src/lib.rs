@@ -98,6 +98,19 @@ mod tests {
     }
 
     #[test]
+    fn test_add() {
+        let mut code = assembleST20C1!(
+            ldc16   #0xffff
+            ldc32   #100000000
+            ldc32   #23456789
+            add
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 123456789, 0xffff, 23456789);
+    }
+
+    #[test]
     fn test_ldc4bit() {
         let mut code = assembleST20C1!(
             ldc     #0xc

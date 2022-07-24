@@ -426,7 +426,17 @@ opr:
 	opr	1		// dup, subc,
 	opr	2		// rot,
 	opr	3		// arot,
-	opr	4		// add,
+
+add:				// ... or ...
+	cbnz	rAcc, 1f
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	add	rAreg, rAreg, rScratch
+	fetchexec
+1:
+	b	panic
+
 	opr	5		// sub,
 	opr	6		// mul,
 	opr	7		// wsub,

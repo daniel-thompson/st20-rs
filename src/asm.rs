@@ -212,6 +212,13 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 28) & 0xf)) as u8, (0x20 | (($imm >> 24) & 0xf)) as u8, (0x20 | (($imm >> 20) & 0xf)) as u8, (0x20 | (($imm >> 16) & 0xf)) as u8, (0x20 | (($imm >> 12) & 0xf)) as u8, (0x20 | (($imm >> 8) & 0xf)) as u8, (0x20 | (($imm >> 4) & 0xf)) as u8, (0x80 | ($imm & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // ADD
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        add
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF4 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // BCC
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         bcc $label:ident
@@ -606,11 +613,6 @@ mod tests {
             ]
         );
     }
-    #[test]
-    fn breakpoint() {
-        let mcode = assembleST20C1!(breakpoint);
-        assert_eq!(mcode, [0xFF]);
-    }
 
     #[test]
     fn ldc() {
@@ -635,5 +637,14 @@ mod tests {
                 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x48, // ldc32
             ]
         );
+    }
+
+    #[test]
+    fn opr_primary() {
+        let mcode = assembleST20C1!(
+            add
+            breakpoint
+        );
+        assert_eq!(mcode, [0xf4, 0xff]);
     }
 }
