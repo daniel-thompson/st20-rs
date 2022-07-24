@@ -262,7 +262,9 @@ ldl:
 	ldl	15
 
 .macro	adc	operand
-	b	panic
+	add	rAcc, rAcc, #\operand
+	add	rAreg, rAreg, rAcc
+	mov	rAcc, #0
 	fetchexec
 .endm
 adc:
