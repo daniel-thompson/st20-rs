@@ -333,19 +333,29 @@ macro_rules! asm_ {
 
     // LDC
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
-        ldc $imm:tt
+        ldc # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x40 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
-        ldc4 $imm:tt
+        ldc4 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x40 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
-        ldc8 $imm:tt
+        ldc8 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 4) & 0xf)), (0x40 | ($imm & 0xf)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc16 # $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 12) & 0xf)) as u8, (0x20 | (($imm >> 8) & 0xf)) as u8, (0x20 | (($imm >> 4) & 0xf)) as u8, (0x40 | ($imm & 0xf) as u8) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldc32 # $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 28) & 0xf)) as u8, (0x20 | (($imm >> 24) & 0xf)) as u8, (0x20 | (($imm >> 20) & 0xf)) as u8, (0x20 | (($imm >> 16) & 0xf)) as u8, (0x20 | (($imm >> 12) & 0xf)) as u8, (0x20 | (($imm >> 8) & 0xf)) as u8, (0x20 | (($imm >> 4) & 0xf)) as u8, (0x40 | ($imm & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     // LDX
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
@@ -632,7 +642,7 @@ mod tests {
     fn no_reloc() {
         let mcode = assembleST20C1!(
             start:
-                ldc8    0xff
+                ldc8    #0xff
         );
         assert_eq!(mcode, [0x2f, 0x4f]);
     }
@@ -646,12 +656,25 @@ mod tests {
     #[test]
     fn ldc() {
         let mcode = assembleST20C1!(
-            ldc     0
-            ldc4    1
-            ldc     0xa
-            ldc     15
-            ldc8    0x5c
+            ldc     #0
+            ldc4    #1
+            ldc     #0xa
+            ldc     #15
+            ldc8    #0x5c
+            ldc16   #0x1234
+            ldc32   #0x12345678
         );
-        assert_eq!(mcode, [0x40, 0x41, 0x4a, 0x4f, 0x25, 0x4c]);
+        assert_eq!(
+            mcode,
+            [
+                0x40, // ldc
+                0x41, // ldc4
+                0x4a, // ldc
+                0x4f, // ldc
+                0x25, 0x4c, // ldc8
+                0x21, 0x22, 0x23, 0x44, // ldc16
+                0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x48, // ldc32
+            ]
+        );
     }
 }

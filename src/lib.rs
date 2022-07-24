@@ -85,9 +85,9 @@ mod tests {
     #[test]
     fn test_ldc4bit() {
         let mut code = assembleST20C1!(
-            ldc     0xc
-            ldc     0xb
-            ldc     0xa
+            ldc     #0xc
+            ldc     #0xb
+            ldc     #0xa
             breakpoint
         );
         let c1 = run_fragment(&mut code);
@@ -97,12 +97,36 @@ mod tests {
     #[test]
     fn test_ldc8bit() {
         let mut code = assembleST20C1!(
-            ldc8    0xc0
-            ldc8    0xb1
-            ldc8    0xa2
+            ldc8    #0xc0
+            ldc8    #0xb1
+            ldc8    #0xa2
             breakpoint
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xa2, 0xb1, 0xc0);
+    }
+
+    #[test]
+    fn test_ldc16bit() {
+        let mut code = assembleST20C1!(
+            ldc16   #0xc012
+            ldc16   #0xb345
+            ldc16   #0xa678
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xa678, 0xb345, 0xc012);
+    }
+
+    #[test]
+    fn test_ldc32() {
+        let mut code = assembleST20C1!(
+            ldc32   #0xc0123456_u32
+            ldc32   #0xb789abcd_u32
+            ldc32   #0xaef01234_u32
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xaef01234, 0xb789abcd, 0xc0123456);
     }
 }
