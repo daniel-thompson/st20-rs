@@ -435,7 +435,11 @@ opr:
 	opr	12		// shr,
 	opr	13		// jab,
 	opr	14		// timeslice,
-	opr	15		// breakpoint,
+
+breakpoint:			// ... or ashr, lwinc, nop
+	cbnz	rAcc, panic
+	b	st20c1_restore
+	fetchexec
 
 panic:
 	mov	rScratch, rC1Ctx
