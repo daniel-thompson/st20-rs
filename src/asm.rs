@@ -219,6 +219,13 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF4 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // AROT
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        arot
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF3 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // BCC
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         bcc $label:ident
@@ -239,6 +246,13 @@ macro_rules! asm_ {
         breakpoint
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0xFF ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // DUP
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        dup
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF1 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // JMP
@@ -409,6 +423,13 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // REV
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        rev
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF0 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // ROL - Rotate Left
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         rol a     // Accumulator
@@ -461,6 +482,13 @@ macro_rules! asm_ {
         ror $zp:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0x66, $zp ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // ROT
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        rot
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF2 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // TXA
@@ -677,10 +705,25 @@ mod tests {
     #[test]
     fn opr_primary() {
         let mcode = assembleST20C1!(
+            rev
+            dup
+            rot
+            arot
             add
             not
             breakpoint
         );
-        assert_eq!(mcode, [0xf4, 0xf8, 0xff]);
+        assert_eq!(
+            mcode,
+            [
+                0xf0, // rev
+                0xf1, // dup
+                0xf2, // rot
+                0xf3, // arot
+                0xf4, // add
+                0xf8, // not
+                0xff, // breakpoint
+            ]
+        );
     }
 }

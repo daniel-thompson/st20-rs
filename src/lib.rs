@@ -67,12 +67,20 @@ mod tests {
 
     fn run_fragment(code: &mut [u8]) -> st20c1_ctx {
         let mut c1 = st20c1_ctx::default();
+
+        // mark the register stack to simplify test fragments
+        c1.regs.Areg = 1000000;
+        c1.regs.Breg = 2000000;
+        c1.regs.Creg = 3000000;
+
         c1.mem = code.as_mut_ptr() as *mut c_void;
 
         let res;
         unsafe {
             res = st20c1_run(&mut c1);
         }
+
+        println!("{c1:#?}");
 
         // a "fragment" exists from the final instruction in the memory,
         // which must be a breakpoint instruction
@@ -108,6 +116,26 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 123456789, 0xffff, 23456789);
+    }
+
+    #[test]
+    fn test_arot() {
+        let mut code = assembleST20C1!(
+            arot
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 3000000, 1000000, 2000000);
+    }
+
+    #[test]
+    fn test_dup() {
+        let mut code = assembleST20C1!(
+            dup
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 1000000, 1000000, 2000000);
     }
 
     #[test]
@@ -214,5 +242,25 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0xaa55cc33, 0xffff0000, 0xffffffff);
+    }
+
+    #[test]
+    fn test_rev() {
+        let mut code = assembleST20C1!(
+            rev
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2000000, 1000000, 3000000);
+    }
+
+    #[test]
+    fn test_rot() {
+        let mut code = assembleST20C1!(
+            rot
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2000000, 3000000, 1000000);
     }
 }

@@ -51,12 +51,20 @@ st20c1_run:
 	adr	rDispatch, dispatch+1	/* +1 to stay in thumb mode */
 	mov	rAcc, #0
 
-.macro	fetchexec
+.macro	fetchexec_noalign
 	ldrb	rScratch, [rIptr], #1	/* 32-bit opcode */
 	lsl	rScratch, #5
 	add	rScratch, rDispatch
 	bx	rScratch
+.endm
+
+.macro	opalign
 	.align	5
+.endm
+
+.macro	fetchexec
+	fetchexec_noalign
+	opalign
 .endm
 
 	fetchexec
@@ -426,10 +434,46 @@ stnl:
 	fetchexec
 .endm
 opr:
-	opr	0		// rev, addc, xor, swinc
-	opr	1		// dup, subc,
-	opr	2		// rot,
-	opr	3		// arot,
+rev:				// <opr 0> or addc, xor, swinc
+	cbnz	rAcc, 1f
+	mov	rScratch, rBreg
+	mov	rBreg, rAreg
+	mov	rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+dup:				// <opr 1> or subc, ...
+	cbnz	rAcc, 1f
+	mov	rCreg, rBreg
+	mov	rBreg, rAreg
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+rot:				// <opr 2> or ...
+	cbnz	rAcc, 1f
+	mov	rScratch, rAreg
+	mov	rAreg, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+arot:				// <opr 3> or ...
+	cbnz	rAcc, 1f
+	mov	rScratch, rCreg
+	mov	rCreg, rBreg
+	mov	rBreg, rAreg
+	mov	rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
 
 add:				// (opr4) or ...
 	cbnz	rAcc, 1f
@@ -438,9 +482,10 @@ add:				// (opr4) or ...
 	mov	rBreg, rCreg
 	mov	rCreg, rAreg
 	add	rAreg, rAreg, rScratch
-	fetchexec
+	fetchexec_noalign
 1:
 	b	panic
+	opalign
 
 	opr	5		// sub,
 	opr	6		// mul,
@@ -449,9 +494,10 @@ add:				// (opr4) or ...
 not:				// (opr 8) or ...
 	cbnz	rAcc, 1f
 	mvn	rAreg, rAreg
-	fetchexec
+	fetchexec_noalign
 1:
 	b	panic
+	opalign
 
 	opr	9		// and,
 	opr	10		// or,
