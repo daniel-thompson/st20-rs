@@ -34,6 +34,18 @@ st20c1_run:
 	mov	rArmSP, sp
 
 	/*
+	 * Health check
+	 *
+	 * If the dispatch table is the wrong size bail out immediately.
+	 */
+	mov	r1, panic-dispatch
+	sub	r1, r1, #8192
+	cbz	r1, 1f
+	mov	r0, #-2			/* self-check failed */
+	pop	{r4-r11, pc}
+1:
+
+	/*
 	 * load ST20C1 state
 	 *
 	 * TODO:can use ldmia one we have finalize register allocation
