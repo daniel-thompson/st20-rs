@@ -230,6 +230,21 @@ mod tests {
     }
 
     #[test]
+    fn test_ldpi() {
+        let mut code = assembleST20C1!(
+            ldc8    #100    // @0  100
+            ldpi            // @2  104
+            dup             // @4  104, 104
+            ldpi            // @5  111, 104
+            dup             // @7  111, 111, 104
+            ldpi            // @8  121, 111, 104
+            breakpoint      // @10 121, 111, 104
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 121, 111, 104);
+    }
+
+    #[test]
     fn test_mul() {
         let mut code = assembleST20C1!(
             ldc     #9

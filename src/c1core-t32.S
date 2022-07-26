@@ -452,7 +452,7 @@ rev:				// <opr 0> or addc, xor, swinc
 	b	panic
 	opalign
 
-dup:				// <opr 1> or subc, ...
+dup:				// <opr 1> or subc, xbword, ecall
 	cbnz	rAcc, 1f
 	mov	rCreg, rBreg
 	mov	rBreg, rAreg
@@ -461,7 +461,7 @@ dup:				// <opr 1> or subc, ...
 	b	panic
 	opalign
 
-rot:				// <opr 2> or ...
+rot:				// <opr 2> or mac, xsword, eret
 	cbnz	rAcc, 1f
 	mov	rScratch, rAreg
 	mov	rAreg, rBreg
@@ -472,7 +472,7 @@ rot:				// <opr 2> or ...
 	b	panic
 	opalign
 
-arot:				// <opr 3> or ...
+arot:				// <opr 3> or umac, bitld, run
 	cbnz	rAcc, 1f
 	mov	rScratch, rCreg
 	mov	rCreg, rBreg
@@ -483,7 +483,7 @@ arot:				// <opr 3> or ...
 	b	panic
 	opalign
 
-add:				// (opr4) or ...
+add:				// (opr4) or smul, bitst, stop
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -495,7 +495,7 @@ add:				// (opr4) or ...
 	b	panic
 	opalign
 
-sub:				// <opr 5> or ...
+sub:				// <opr 5> or smacinit, bitmask, signal
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -507,7 +507,7 @@ sub:				// <opr 5> or ...
 	b	panic
 	opalign
 
-mul:				// <opr 6> or ...
+mul:				// <opr 6> or smacloop, statusset, wait
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -519,7 +519,7 @@ mul:				// <opr 6> or ...
 	b	panic
 	opalign
 
-wsub:				// <opr 7> or ...
+wsub:				// <opr 7> or biquad, statusclr, enqueue
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -532,7 +532,7 @@ wsub:				// <opr 7> or ...
 	b	panic
 	opalign
 
-not:				// <opr 8> or ...
+not:				// <opr 8> or divstep, statustst, dequeue
 	cbnz	rAcc, 1f
 	mvn	rAreg, rAreg
 	fetchexec_noalign
@@ -540,7 +540,7 @@ not:				// <opr 8> or ...
 	b	panic
 	opalign
 
-and:				// <opr 9> or ...
+and:				// <opr 9> or unsign, rmw, ldtdesc
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -552,7 +552,7 @@ and:				// <opr 9> or ...
 	b	panic
 	opalign
 
-or:				// <opr 10> or ...
+or:				// <opr A> or saturate, lbinc, ldpi
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -561,10 +561,10 @@ or:				// <opr 10> or ...
 	orr	rAreg, rAreg, rScratch
 	fetchexec_noalign
 1:
-	b	panic
+	b	saturate_lbinc_ldpi
 	opalign
 
-shl:				// <opr B> or ...
+shl:				// <opr B> or gt, sbinc, gajw
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -576,7 +576,7 @@ shl:				// <opr B> or ...
 	b	panic
 	opalign
 
-shr:				// <opr C> or ...
+shr:				// <opr C> or gtu, lsinc, ldprodid
 	cbnz	rAcc, 1f
 	// rAcc is already zero so we don't need to consume or zero it
 	mov	rScratch, rBreg
@@ -588,11 +588,11 @@ shr:				// <opr C> or ...
 	b	panic
 	opalign
 
-jab:				// <opr D> or ...
+jab:				// <opr D> or order, lsxinc, io
 	b	panic
 	fetchexec
 
-timeslice:			// <opr E> or ...
+timeslice:			// <opr E> or orderu, ssinc, swap32
 	b	panic
 	fetchexec
 
@@ -616,3 +616,14 @@ panic:
 	mov	r0, #-1			/* ouch! */
 	mov	sp, rArmSP
 	pop	{r4-r11, pc}
+
+saturate_lbinc_ldpi:
+	subs	rAcc, rAcc, #0x30
+	bne	2f
+	// ldpi
+	add	rAreg, rAreg, rIptr
+	sub	rAreg, rAreg, rMemBase
+1:
+	fetchexec_noalign
+2:
+	b	panic

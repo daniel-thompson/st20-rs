@@ -262,6 +262,13 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF1 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // LDPI
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        ldpi
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0x23, 0xFA ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // JAB
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         jab
@@ -804,6 +811,17 @@ mod tests {
                 0xfd, // jab
                 0xfe, // timeslice
                 0xff, // breakpoint
+            ]
+        );
+    }
+
+    #[test]
+    fn opr_secondary() {
+        let mcode = assembleST20C1!(ldpi);
+        assert_eq!(
+            mcode,
+            [
+                0x23, 0xfa, // ldpi
             ]
         );
     }
