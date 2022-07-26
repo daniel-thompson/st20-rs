@@ -187,9 +187,19 @@ macro_rules! asm_ {
 
     // ADC
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        adc # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x6f), (0x80 + (0x10 - $imm)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         adc # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x80 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        adc4 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x6f), (0x80 + (0x10 - $imm)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         adc4 # $imm:tt
@@ -197,14 +207,29 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* (0x80 + $imm) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        adc8 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x60 | (((0x100 - $imm) >> 4) & 0xf)) as u8, (0x80 | ((0x100 - $imm) & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         adc8 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 4) & 0xf)), (0x80 | ($imm & 0xf)) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        adc16 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x60 | (((0x10000 - $imm) >> 12) & 0xf)) as u8, (0x20 | (((0x10000 - $imm) >> 8) & 0xf)) as u8, (0x20 | (((0x10000 - $imm) >> 4) & 0xf)) as u8, (0x80 | ((0x10000 - $imm) & 0xf) as u8) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         adc16 # $imm:tt
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* (0x20 | (($imm >> 12) & 0xf)) as u8, (0x20 | (($imm >> 8) & 0xf)) as u8, (0x20 | (($imm >> 4) & 0xf)) as u8, (0x80 | ($imm & 0xf) as u8) ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        adc32 # - $imm:tt
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* (0x68 | (((0x80000000_u32 - $imm) >> 28) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 24) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 20) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 16) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 12) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 8) & 0xf)) as u8, (0x20 | (((0x80000000_u32 - $imm) >> 4) & 0xf)) as u8, (0x80 | ((0x80000000_u32 - $imm) & 0xf)) as u8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         adc32 # $imm:tt
@@ -730,6 +755,11 @@ mod tests {
             adc8    #0x5c
             adc16   #0x1234
             adc32   #0x12345678
+            adc     #-1
+            adc4    #-1
+            adc8    #-1
+            adc16    #-1
+            adc32    #-1
         );
         assert_eq!(
             mcode,
@@ -741,6 +771,11 @@ mod tests {
                 0x25, 0x8c, // adc8
                 0x21, 0x22, 0x23, 0x84, // adc16
                 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x88, // adc32
+                0x6f, 0x8f, // adc
+                0x6f, 0x8f, // adc4
+                0x6f, 0x8f, // adc8
+                0x6f, 0x2f, 0x2f, 0x8f, // adc16
+                0x6f, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x8f, // adc32
             ]
         );
     }
@@ -748,6 +783,10 @@ mod tests {
     #[test]
     fn ldc() {
         let mcode = assembleST20C1!(
+            ldc32   #-1
+            ldc16   #-1
+            ldc8    #-1
+            ldc4    #-1
             ldc     #-1
             ldc     #0
             ldc4    #1
@@ -760,6 +799,10 @@ mod tests {
         assert_eq!(
             mcode,
             [
+                0x6f, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x2f, 0x4f, // ldc32 -1
+                0x6f, 0x2f, 0x2f, 0x4f, // ldc16 -1
+                0x6f, 0x4f, // ldc8 -1
+                0x6f, 0x4f, // ldc4 -1
                 0x6f, 0x4f, // ldc -1
                 0x40, // ldc
                 0x41, // ldc4
