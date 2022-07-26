@@ -346,15 +346,13 @@ fcall:
 	b	2f
 	opalign
 
-	cbnz	rAreg, 3f
+	cmp	rAreg, #0
+	bne	1b
 	add	rAcc, rAcc, #\operand+1
 	add	rIptr, rIptr, rAcc
 2:
 	mov	rAcc, #0
-	fetchexec_noalign
-3:
-	b	1b
-	opalign
+	fetchexec
 .endm
 cj:
 	// cj is encoded as a pair (to avoid overflowing the optable)

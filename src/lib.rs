@@ -172,6 +172,26 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 0, 1000001, 2000020);
+
+        let mut code = assembleST20C1!(
+        start:
+            adc     #0
+            cj      start
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2000020, 3000300, 1000001);
+
+        let mut code = assembleST20C1!(
+            ldc     #0
+            cj      end
+            ldc16   #0xdead
+            adc     #0
+        end:
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0, 1000001, 2000020);
     }
 
     #[test]
