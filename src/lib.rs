@@ -116,6 +116,23 @@ mod tests {
     }
 
     #[test]
+    fn test_ajw() {
+        let mut code = assembleST20C1!(
+            ajw32   #0x3c000000
+            ajw32   #-0x1c000000
+            ajw16   #0x3c00
+            ajw16   #-0x1c00
+            ajw8    #0x3c
+            ajw8    #-0x1c
+            ajw     #2
+            ajw     #-1
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_eq!(c1.regs.Wptr, 0x80008084);
+    }
+
+    #[test]
     fn test_and() {
         let mut code = assembleST20C1!(
             and

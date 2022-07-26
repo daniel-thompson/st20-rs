@@ -354,7 +354,10 @@ cj:
 	cj	15
 
 .macro	ajw	operand
-	b	panic
+	add	rAcc, rAcc, #\operand
+	lsl	rAcc, rAcc, #2
+	add	rWptr, rWptr, rAcc
+	mov	rAcc, #0
 	fetchexec
 .endm
 ajw:
