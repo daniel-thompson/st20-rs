@@ -219,6 +219,13 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF4 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // AND
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        and
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF9 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // AROT
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         arot
@@ -253,6 +260,13 @@ macro_rules! asm_ {
         dup
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF1 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // JAB
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        jab
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFD ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // JMP
@@ -416,11 +430,25 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0x46, $zp ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // MUL
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        mul
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF6 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // NOT
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         not
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF8 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // OR
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        or
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFA ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // REV
@@ -491,11 +519,46 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xF2 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // SHL
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        shl
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFB ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // SHR
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        shr
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFC ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // SUB
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        sub
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF5 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // TIMESLICE
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        timeslice
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFE ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
     // TXA
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         txa
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0x8A ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // WSUB
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        wsub
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xF7 ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
     // ==================================================================================
@@ -710,7 +773,16 @@ mod tests {
             rot
             arot
             add
+            sub
+            mul
+            wsub
             not
+            and
+            or
+            shl
+            shr
+            jab
+            timeslice
             breakpoint
         );
         assert_eq!(
@@ -721,7 +793,16 @@ mod tests {
                 0xf2, // rot
                 0xf3, // arot
                 0xf4, // add
+                0xf5, // sub
+                0xf6, // mul
+                0xf7, // wsub
                 0xf8, // not
+                0xf9, // and
+                0xfa, // or
+                0xfb, // shl
+                0xfc, // shr
+                0xfd, // jab
+                0xfe, // timeslice
                 0xff, // breakpoint
             ]
         );

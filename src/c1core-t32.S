@@ -441,10 +441,6 @@ stnl:
 	stnl	14
 	stnl	15
 
-.macro	opr	operand
-	b	panic
-	fetchexec
-.endm
 opr:
 rev:				// <opr 0> or addc, xor, swinc
 	cbnz	rAcc, 1f
@@ -499,11 +495,44 @@ add:				// (opr4) or ...
 	b	panic
 	opalign
 
-	opr	5		// sub,
-	opr	6		// mul,
-	opr	7		// wsub,
+sub:				// <opr 5> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	sub	rAreg, rScratch, rAreg
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
 
-not:				// (opr 8) or ...
+mul:				// <opr 6> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	mul	rAreg, rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+wsub:				// <opr 7> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	lsl	rScratch, rScratch, #2
+	add	rAreg, rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+not:				// <opr 8> or ...
 	cbnz	rAcc, 1f
 	mvn	rAreg, rAreg
 	fetchexec_noalign
@@ -511,14 +540,63 @@ not:				// (opr 8) or ...
 	b	panic
 	opalign
 
-	opr	9		// and,
-	opr	10		// or,
-	opr	11		// shl,
-	opr	12		// shr,
-	opr	13		// jab,
-	opr	14		// timeslice,
+and:				// <opr 9> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	and	rAreg, rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
 
-breakpoint:			// (opr F) or ashr, lwinc, nop
+or:				// <opr 10> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rAreg
+	orr	rAreg, rAreg, rScratch
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+shl:				// <opr B> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rScratch
+	lsl	rAreg, rScratch, rAreg
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+shr:				// <opr C> or ...
+	cbnz	rAcc, 1f
+	// rAcc is already zero so we don't need to consume or zero it
+	mov	rScratch, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rScratch
+	lsr	rAreg, rScratch, rAreg
+	fetchexec_noalign
+1:
+	b	panic
+	opalign
+
+jab:				// <opr D> or ...
+	b	panic
+	fetchexec
+
+timeslice:			// <opr E> or ...
+	b	panic
+	fetchexec
+
+breakpoint:			// <opr F> or ashr, lwinc, nop
 	cbnz	rAcc, panic
 	b	st20c1_restore
 	fetchexec

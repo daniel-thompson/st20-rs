@@ -69,9 +69,9 @@ mod tests {
         let mut c1 = st20c1_ctx::default();
 
         // mark the register stack to simplify test fragments
-        c1.regs.Areg = 1000000;
-        c1.regs.Breg = 2000000;
-        c1.regs.Creg = 3000000;
+        c1.regs.Areg = 1000001;
+        c1.regs.Breg = 2000020;
+        c1.regs.Creg = 3000300;
 
         c1.mem = code.as_mut_ptr() as *mut c_void;
 
@@ -108,14 +108,21 @@ mod tests {
     #[test]
     fn test_add() {
         let mut code = assembleST20C1!(
-            ldc16   #0xffff
-            ldc32   #100000000
-            ldc32   #23456789
             add
             breakpoint
         );
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 123456789, 0xffff, 23456789);
+        assert_regs!(c1, 3000021, 3000300, 1000001);
+    }
+
+    #[test]
+    fn test_and() {
+        let mut code = assembleST20C1!(
+            and
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 917504, 3000300, 1000001);
     }
 
     #[test]
@@ -125,7 +132,7 @@ mod tests {
             breakpoint
         );
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 3000000, 1000000, 2000000);
+        assert_regs!(c1, 3000300, 1000001, 2000020);
     }
 
     #[test]
@@ -135,7 +142,7 @@ mod tests {
             breakpoint
         );
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 1000000, 1000000, 2000000);
+        assert_regs!(c1, 1000001, 1000001, 2000020);
     }
 
     #[test]
@@ -223,10 +230,22 @@ mod tests {
     }
 
     #[test]
+    fn test_mul() {
+        let mut code = assembleST20C1!(
+            ldc     #9
+            ldc8    #81
+            mul
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 729, 1000001, 81);
+    }
+
+    #[test]
     fn test_nfix() {
         let mut code: Vec<u8> = vec![0x6f, 0x4f, 0xff];
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 0xffffffff);
+        assert_regs!(c1, 0xffffffff, 1000001, 2000020);
     }
 
     #[test]
@@ -245,13 +264,23 @@ mod tests {
     }
 
     #[test]
+    fn test_or() {
+        let mut code = assembleST20C1!(
+            or
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2082517, 3000300, 1000001);
+    }
+
+    #[test]
     fn test_rev() {
         let mut code = assembleST20C1!(
             rev
             breakpoint
         );
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 2000000, 1000000, 3000000);
+        assert_regs!(c1, 2000020, 1000001, 3000300);
     }
 
     #[test]
@@ -261,6 +290,51 @@ mod tests {
             breakpoint
         );
         let c1 = run_fragment(&mut code);
-        assert_regs!(c1, 2000000, 3000000, 1000000);
+        assert_regs!(c1, 2000020, 3000300, 1000001);
+    }
+
+    #[test]
+    fn test_shl() {
+        let mut code = assembleST20C1!(
+            ldc     #4
+            shl
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 16000016, 2000020, 1000001);
+    }
+
+    #[test]
+    fn test_shr() {
+        let mut code = assembleST20C1!(
+            ldc     #4
+            shr
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 62500, 2000020, 1000001);
+    }
+
+    #[test]
+    fn test_sub() {
+        let mut code = assembleST20C1!(
+            adc8     #20
+            sub
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 999999, 3000300, 1000021);
+    }
+
+    #[test]
+    fn test_wsub() {
+        let mut code = assembleST20C1!(
+            ldc8    #250
+            rev
+            wsub
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 1001001, 2000020, 1000001);
     }
 }
