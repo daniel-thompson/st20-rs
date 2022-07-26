@@ -103,7 +103,9 @@ st20c1_restore:
 	.align	5
 dispatch:
 .macro	j	operand
-	b	panic
+	add	rAcc, rAcc, #\operand
+	add	rIptr, rIptr, rAcc
+	mov	rAcc, #0
 	fetchexec
 .endm
 j:
@@ -332,26 +334,38 @@ fcall:
 	fcall	15
 
 .macro	cj	operand
-	b	panic
-	fetchexec
+	cbnz	rAreg, 1f
+	add	rAcc, rAcc, #\operand
+	add	rIptr, rIptr, rAcc
+	b	2f
+1:
+	mov	rScratch, rAreg
+	mov	rAreg, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rScratch
+	b	2f
+	opalign
+
+	cbnz	rAreg, 3f
+	add	rAcc, rAcc, #\operand+1
+	add	rIptr, rIptr, rAcc
+2:
+	mov	rAcc, #0
+	fetchexec_noalign
+3:
+	b	1b
+	opalign
 .endm
 cj:
+	// cj is encoded as a pair (to avoid overflowing the optable)
 	cj	0
-	cj	1
 	cj	2
-	cj	3
 	cj	4
-	cj	5
 	cj	6
-	cj	7
 	cj	8
-	cj	9
 	cj	10
-	cj	11
 	cj	12
-	cj	13
 	cj	14
-	cj	15
 
 .macro	ajw	operand
 	add	rAcc, rAcc, #\operand

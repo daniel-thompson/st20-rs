@@ -3,6 +3,7 @@
 
 #![allow(non_snake_case)]
 #![allow(unused_macros)] // see TODO in asm.rs
+#![recursion_limit = "256"]
 
 pub mod asm;
 
@@ -153,6 +154,27 @@ mod tests {
     }
 
     #[test]
+    fn test_cj() {
+        let mut code = assembleST20C1!(
+        start:
+            cj      start
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2000020, 3000300, 1000001);
+
+        let mut code = assembleST20C1!(
+            ldc     #0
+            cj      end
+            ldc16   #0xdead
+        end:
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0, 1000001, 2000020);
+    }
+
+    #[test]
     fn test_dup() {
         let mut code = assembleST20C1!(
             dup
@@ -160,6 +182,37 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 1000001, 1000001, 2000020);
+    }
+
+    #[test]
+    fn test_j() {
+        let mut code = assembleST20C1!(
+            j       give_me
+        an_f:
+            ldc     #0xf
+            j       an_a
+        a_c:
+            ldc     #4
+            shl
+            adc     #0xc
+            j       an_e
+        an_e:
+            ldc     #4
+            shl
+            adc     #0xe
+            j       what_have_you_got
+        give_me:
+            j       an_f
+        an_a:
+            ldc     #4
+            shl
+            adc     #0xa
+            j       a_c
+        what_have_you_got:
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xface);
     }
 
     #[test]

@@ -163,6 +163,40 @@ macro_rules! reloc {
             [ $($lockstepmcpos),* ], [ ( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 1 ) as u8 ] ],
             $lblmap, [ $($mcode),* ], [ $($reloc),* ])
     };
+    ( { $($attr:tt)* }  [ $( [ $($pos:expr),* ], [ $($rep:expr),* ] ),* ], $lblmap:ident, [ $($mcode:expr),* ], [ { $lbl:ident as PCREL0 @ [$($lockstepmcpos:expr),*] } $(,$reloc:tt)* ] ) => {
+        // Replace 4 Byte with the PC relative address and jump instruction
+        // Iptr is the program counter *after* the relocated offset (the length of the
+        // `$lockstepmcpos` array + 1), so we need to subtract 1 additional byte.
+        reloc!(
+            { $($attr)* }
+            [ $( [ $($pos),* ], [ $($rep),* ] ,)*
+            [ $($lockstepmcpos),* ], [
+                // Masking against 0x4f is essentially reading bit 18 as the sign bit and using it
+                // to choose between nfix and pfix...
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 12) & 0x4f)) as u8,
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 8) & 0xf)) as u8,
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 4) & 0xf)) as u8,
+                ( 0x00 | (( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) & 0xf)) as u8
+            ] ],
+            $lblmap, [ $($mcode),* ], [ $($reloc),* ])
+    };
+    ( { $($attr:tt)* }  [ $( [ $($pos:expr),* ], [ $($rep:expr),* ] ),* ], $lblmap:ident, [ $($mcode:expr),* ], [ { $lbl:ident as PCRELA @ [$($lockstepmcpos:expr),*] } $(,$reloc:tt)* ] ) => {
+        // Replace 4 Byte with the PC relative address and jump instruction
+        // Iptr is the program counter *after* the relocated offset (the length of the
+        // `$lockstepmcpos` array + 1), so we need to subtract 1 additional byte.
+        reloc!(
+            { $($attr)* }
+            [ $( [ $($pos),* ], [ $($rep),* ] ,)*
+            [ $($lockstepmcpos),* ], [
+                // Masking against 0x4f is essentially reading bit 18 as the sign bit and using it
+                // to choose between nfix and pfix...
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 12) & 0x4f)) as u8,
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 8) & 0xf)) as u8,
+                ( 0x20 | ((( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) >> 4) & 0xf)) as u8,
+                ( 0xa0 | (( $lblmap!($lbl) as i32 - codelen!($($lockstepmcpos),*) as i32 - 4 ) & 0xf)) as u8
+            ] ],
+            $lblmap, [ $($mcode),* ], [ $($reloc),* ])
+    };
 }
 
 #[macro_export]
@@ -332,6 +366,14 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0xFF ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
+    // CJ
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        cj $label:ident
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0x20, 0x00, 0x00, 0x00, 0x00 ],
+            [ $($lbl => $lblval),* ], [ $($reloc,)* { $label as PCRELA @ [$($mcode,)* 0x20 ] } ], $($rest)*)
+    };
+
     // DUP
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         dup
@@ -346,13 +388,6 @@ macro_rules! asm_ {
         asm_!({ $($attr)* } [ $($mcode,)* 0x23, 0xFA ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
     };
 
-    // JAB
-    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
-        jab
-    $($rest:tt)* ) => {
-        asm_!({ $($attr)* } [ $($mcode,)* 0xFD ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
-    };
-
     // JMP
     ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
         jmp $label:ident    // jmp abs
@@ -365,6 +400,21 @@ macro_rules! asm_ {
     $($rest:tt)* ) => {
         asm_!({ $($attr)* } [ $($mcode,)* 0x6C, ($ind as u16) as u8, (($ind as u16) >> 8) as u8 ],
             [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // JAB
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        jab
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0xFD ], [ $($lbl => $lblval),* ], [ $($reloc),* ], $($rest)*)
+    };
+
+    // J
+    ( { $($attr:tt)* } [ $($mcode:expr),* ], [ $($lbl:ident => $lblval:expr),* ], [ $($reloc:tt),* ],
+        j $label:ident
+    $($rest:tt)* ) => {
+        asm_!({ $($attr)* } [ $($mcode,)* 0x20, 0x00, 0x00, 0x00, 0x00 ],
+            [ $($lbl => $lblval),* ], [ $($reloc,)* { $label as PCREL0 @ [$($mcode,)* 0x20 ] } ], $($rest)*)
     };
 
     // LDA
@@ -897,6 +947,27 @@ mod tests {
                 0x25, 0x4c, // ldc8
                 0x21, 0x22, 0x23, 0x44, // ldc16
                 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x48, // ldc32
+            ]
+        );
+    }
+
+    #[test]
+    fn j() {
+        let mcode = assembleST20C1!(
+        start:
+            cj start
+            j main
+            ldpi
+        main:
+            j start
+        );
+        assert_eq!(
+            mcode,
+            [
+                0x20, 0x6f, 0x2f, 0x2f, 0xab, // cj start
+                0x20, 0x20, 0x20, 0x20, 0x02, // j main
+                0x23, 0xfa, // ldpi
+                0x20, 0x6f, 0x2f, 0x2e, 0x0f, // j start
             ]
         );
     }
