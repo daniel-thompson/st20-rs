@@ -65,8 +65,8 @@ st20c1_run:
 
 .macro	fetchexec_noalign
 	ldrb	rScratch, [rIptr], #1	/* 32-bit opcode */
-	lsl	rScratch, #5
-	add	rScratch, rDispatch
+	lsls	rScratch, #5
+	adds	rScratch, rDispatch
 	bx	rScratch
 .endm
 
@@ -127,7 +127,12 @@ j:
 	j	15
 
 .macro	ldlp	operand
-	b	panic
+	add	rAcc, rAcc, #\operand
+	mov	rCreg, rBreg
+	mov	rBreg, rAreg
+	lsl	rAcc, rAcc, 2
+	add	rAreg, rWptr, rAcc
+	mov	rAcc, #0
 	fetchexec
 .endm
 ldlp:
@@ -172,7 +177,10 @@ pfix:
 	pfix	15
 
 .macro	ldnl	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	adds	rAreg, rAreg, rMemBase
+	ldr	rAreg, [rAreg, rAcc, lsl #2]
+	mov	rAcc, #0
 	fetchexec
 .endm
 ldnl:
@@ -219,7 +227,10 @@ ldc:
 	ldc	15
 
 .macro	ldnlp	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	lsls	rAcc, rAcc, #2
+	adds	rAreg, rAreg, rAcc
+	mov	rAcc, #0
 	fetchexec
 .endm
 ldnlp:
@@ -266,7 +277,13 @@ nfix:
 	nfix	15
 
 .macro	ldl	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	mov	rScratch, rWptr
+	adds	rScratch, rScratch, rMemBase
+	mov	rCreg, rBreg
+	mov	rBreg, rAreg
+	ldr	rAreg, [rScratch, rAcc, lsl #2]
+	mov	rAcc, #0
 	fetchexec
 .endm
 ldl:
@@ -312,7 +329,14 @@ adc:
 	adc	15
 
 .macro	fcall	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	mov	rScratch, rIptr
+	adds	rIptr, rIptr, rAcc
+	mov	rAcc, rWptr
+	adds	rAcc, rAcc, rMemBase
+	subs	rScratch, rScratch, rMemBase
+	str	rScratch, [rAcc]
+	mov	rAcc, #0
 	fetchexec
 .endm
 fcall:
@@ -391,7 +415,11 @@ ajw:
 	ajw	15
 
 .macro	eqc	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	subs	rScratch, rAreg, rAcc
+	rsbs	rAreg, rScratch, #0
+	adcs	rAreg, rAreg, rScratch
+	mov	rAcc, #0
 	fetchexec
 .endm
 eqc:
@@ -413,7 +441,15 @@ eqc:
 	eqc	15
 
 .macro	stl	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	mov	rScratch, rWptr
+	adds	rScratch, rScratch, rMemBase
+	str	rAreg, [rScratch, rAcc, lsl #2]
+	mov	rScratch, rAreg
+	mov	rAreg, rBreg
+	mov	rBreg, rCreg
+	mov	rCreg, rScratch
+	movs	rAcc, #0
 	fetchexec
 .endm
 stl:
@@ -435,7 +471,14 @@ stl:
 	stl	15
 
 .macro	stnl	operand
-	b	panic
+	adds	rAcc, rAcc, #\operand
+	adds	rScratch, rAreg, rMemBase
+	str	rBreg, [rScratch, rAcc, lsl #2]
+	mov	rScratch, rAreg
+	mov	rAreg, rCreg
+	mov	rCreg, rBreg
+	mov	rBreg, rScratch
+	movs	rAcc, #0
 	fetchexec
 .endm
 stnl:
@@ -612,9 +655,12 @@ timeslice:			// <opr E> or orderu, ssinc, swap32
 	fetchexec
 
 breakpoint:			// <opr F> or ashr, lwinc, nop
-	cbnz	rAcc, panic
+	cbnz	rAcc, 1f
 	b	st20c1_restore
-	fetchexec
+	fetchexec_noalign
+1:
+	b	ashr_lwinc_nop
+	opalign
 
 panic:
 	mov	rScratch, rC1Ctx
@@ -638,6 +684,15 @@ saturate_lbinc_ldpi:
 	// ldpi
 	add	rAreg, rAreg, rIptr
 	sub	rAreg, rAreg, rMemBase
+1:
+	fetchexec_noalign
+2:
+	b	panic
+
+ashr_lwinc_nop:
+	subs	rAcc, rAcc, #0x30
+	bne	2f
+	// nop
 1:
 	fetchexec_noalign
 2:

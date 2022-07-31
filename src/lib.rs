@@ -205,6 +205,45 @@ mod tests {
     }
 
     #[test]
+    fn test_eqc() {
+        let mut code = assembleST20C1!(
+            eqc32   #1000001
+            ldc8    #188
+            dup
+            eqc8    #189
+            rev
+            eqc8    #188
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 1, 0, 1);
+    }
+
+    #[test]
+    fn test_fcall() {
+        let mut code = assembleST20C1!(
+            ajw     #2          // @0
+            j       skip_wptr   // @1
+            nop                 // @6
+            nop                 // @8
+            nop                 // @10
+        skip_wptr:
+            fcall   end         // @12
+            breakpoint          // @17
+        end:
+            ldl     #0          // @18
+            breakpoint          // @19
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 17, 1000001, 2000020);
+        assert_eq!(c1.regs.Wptr, 8);
+        assert_eq!(code[8], 17);
+        assert_eq!(code[9], 0);
+        assert_eq!(code[10], 0);
+        assert_eq!(code[11], 0);
+    }
+
+    #[test]
     fn test_j() {
         let mut code = assembleST20C1!(
             j       give_me
@@ -320,6 +359,72 @@ mod tests {
     }
 
     #[test]
+    fn test_ldl() {
+        let mut code = assembleST20C1!(
+            ldl32   #1
+            ldl16   #2
+            ajw     #15
+            ldl8    #-12
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(
+            c1,         // This will only work on little-endian hosts
+            0xff746fbf, // ajw #15, nfix #f, ldl #4, breakpoint
+            0x72202020, // pfix #0, pfix #0, pfix #0, ldl #2
+            0x71202020  // pfix #0, pfix #0, pfix #0, ldl #1
+        );
+    }
+
+    #[test]
+    fn test_ldlp() {
+        let mut code = assembleST20C1!(
+            ldlp    #15
+            ajw32   #0x04000000
+            ldlp32  #0x008d159e
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0x12345678, 60, 1000001);
+    }
+
+    #[test]
+    fn test_ldnl() {
+        let mut code = assembleST20C1!(
+            ldlp16  #1
+            ldnl16  #0
+            ldlp8   #0
+            ldnl8   #2
+            ajw     #15
+            ldlp    #0
+            ldnl    #-12
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(
+            c1,         // This will only work on little-endian hosts
+            0x346f10bf, // ajw #15, ldlp #0, nfix #f, ldnl #4
+            0x32201020, // pfix #0, ldlp #0, pfix #0, ldnl #2
+            0x30202020  // pfix #0, pfix #0, pfix #0, ldnl #0
+        );
+    }
+
+    #[test]
+    fn test_ldnlp() {
+        let mut code = assembleST20C1!(
+            ldc     #3 // 0b0011
+            ldnlp   #1 // 0b0111
+            ldnlp4  #2 // 0b1111
+            ldnlp8  #0x38 // 0xef
+            ldnlp16 #0x2f80 // 0xbeef
+            ldnlp32 #0x37ab4000 // 0xdeadbeef
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 0xdeadbeef);
+    }
+
+    #[test]
     fn test_ldpi() {
         let mut code = assembleST20C1!(
             ldc8    #100    // @0  100
@@ -418,6 +523,58 @@ mod tests {
         );
         let c1 = run_fragment(&mut code);
         assert_regs!(c1, 62500, 2000020, 1000001);
+    }
+
+    #[test]
+    fn test_stl() {
+        let mut code = assembleST20C1!(
+            nop
+            adc     #0
+            stl     #0
+            nop
+            rev
+            stl     #1
+            ajw     #1
+            nop
+            stl     #1
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 1000001, 3000300, 2000020);
+        assert_eq!(code[0], (1000001 & 0xff) as u8);
+        assert_eq!(code[1], ((1000001 >> 8) & 0xff) as u8);
+        assert_eq!(code[2], ((1000001 >> 16) & 0xff) as u8);
+        assert_eq!(code[3], ((1000001 >> 24) & 0xff) as u8);
+        assert_eq!(code[4], (3000300 & 0xff) as u8);
+        assert_eq!(code[5], ((3000300 >> 8) & 0xff) as u8);
+        assert_eq!(code[6], ((3000300 >> 16) & 0xff) as u8);
+        assert_eq!(code[7], ((3000300 >> 24) & 0xff) as u8);
+        assert_eq!(code[8], (2000020 & 0xff) as u8);
+        assert_eq!(code[9], ((2000020 >> 8) & 0xff) as u8);
+        assert_eq!(code[10], ((2000020 >> 16) & 0xff) as u8);
+        assert_eq!(code[11], ((2000020 >> 24) & 0xff) as u8);
+    }
+
+    #[test]
+    fn test_stnl() {
+        let mut code = assembleST20C1!(
+            nop         // @0
+            ldlp    #1  // @2
+            stnl    #2  // @3
+            j       end // @4
+            adc     #0  // @9
+            nop         // @10
+            nop         // @12
+            nop         // @14
+        end:
+            breakpoint
+        );
+        let c1 = run_fragment(&mut code);
+        assert_regs!(c1, 2000020, 4, 1000001);
+        assert_eq!(code[12], (1000001 & 0xff) as u8);
+        assert_eq!(code[13], ((1000001 >> 8) & 0xff) as u8);
+        assert_eq!(code[14], ((1000001 >> 16) & 0xff) as u8);
+        assert_eq!(code[15], ((1000001 >> 24) & 0xff) as u8);
     }
 
     #[test]
